@@ -12,10 +12,17 @@ jobs:
       - name: 1. Checkout repository
         uses: actions/checkout@v4
 
-      - name: 2. Select Xcode 16.2
+      - name: 2. Select Xcode with Swift 6.2+ (Xcode 26+)
         run: |
-          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          for app in /Applications/Xcode_26.0.1.app /Applications/Xcode_26.1.1.app /Applications/Xcode_26.2.app /Applications/Xcode_26.3.app /Applications/Xcode_26*.app /Applications/Xcode.app; do
+            if [ -d "$app" ]; then
+              echo "Selecting Xcode from $app"
+              sudo xcode-select -s "$app/Contents/Developer"
+              break
+            fi
+          done
           xcodebuild -version
+          swift --version
 
       - name: 3. Setup Node.js
         uses: actions/setup-node@v4
@@ -63,7 +70,9 @@ jobs:
       - name: 9. Package ToolKit-arm64.ipa (ZIP Container)
         run: |
           mkdir -p Payload
-          cp -r build/ToolKit.xcarchive/Products/Applications/ToolKit.app Payload/
+          APP_DIR=$(find build -name "ToolKit.app" -type d | head -n 1)
+          echo "Packaging from: $APP_DIR"
+          cp -r "$APP_DIR" Payload/
           zip -r ToolKit-arm64.ipa Payload/
           echo "IPA packaging completed. Size:"
           ls -lh ToolKit-arm64.ipa
