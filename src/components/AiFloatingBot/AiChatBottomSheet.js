@@ -77,6 +77,7 @@ export default function AiChatBottomSheet({ visible, onClose }) {
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [customKeyInput, setCustomKeyInput] = useState('');
   const [copiedId, setCopiedId] = useState(null);
+  const [isFullScreen, setIsFullScreen] = useState(true);
 
   // Nạp lịch sử trò chuyện khi mở
   useEffect(() => {
@@ -281,24 +282,28 @@ export default function AiChatBottomSheet({ visible, onClose }) {
       transparent
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
-        <Pressable style={styles.backdropPressable} onPress={onClose} />
+      <View style={[styles.modalOverlay, isFullScreen && styles.modalOverlayFullScreen]}>
+        {!isFullScreen && <Pressable style={styles.backdropPressable} onPress={onClose} />}
 
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={[
             styles.sheetContainer,
+            isFullScreen && styles.sheetContainerFullScreen,
             {
               backgroundColor: colors.bg,
               borderColor: colors.cardBorder,
+              paddingTop: isFullScreen ? Math.max(insets.top, 12) : 0,
               paddingBottom: insets.bottom || 12,
             },
           ]}
         >
           {/* Thanh nắm kéo & Header */}
-          <View style={styles.dragHandleWrap}>
-            <View style={[styles.dragBar, { backgroundColor: colors.border }]} />
-          </View>
+          {!isFullScreen && (
+            <View style={styles.dragHandleWrap}>
+              <View style={[styles.dragBar, { backgroundColor: colors.border }]} />
+            </View>
+          )}
 
           <View style={[styles.sheetHeader, { borderBottomColor: colors.cardBorder }]}>
             <View style={styles.headerTitleRow}>
@@ -308,12 +313,24 @@ export default function AiChatBottomSheet({ visible, onClose }) {
               <View>
                 <Text style={[styles.headerTitle, { color: colors.text }]}>{t('aiBot.botName')}</Text>
                 <Text style={[styles.headerSub, { color: '#10B981' }]}>
-                  {isVietnamese ? '● Gemini 1.5 Flash Sẵn sàng' : '● Gemini 1.5 Flash Ready'}
+                  {isVietnamese ? '● Google Gemini AI Sẵn sàng' : '● Google Gemini AI Ready'}
                 </Text>
               </View>
             </View>
 
             <View style={styles.headerActionsRow}>
+              <Pressable
+                onPress={() => setIsFullScreen((prev) => !prev)}
+                style={[styles.headerIconBtn, { backgroundColor: colors.card }]}
+                hitSlop={6}
+              >
+                <Ionicons
+                  name={isFullScreen ? 'contract-outline' : 'expand-outline'}
+                  size={17}
+                  color={colors.sub}
+                />
+              </Pressable>
+
               <Pressable
                 onPress={handleClearHistory}
                 style={[styles.headerIconBtn, { backgroundColor: colors.card }]}
@@ -491,6 +508,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.55)',
     justifyContent: 'flex-end',
   },
+  modalOverlayFullScreen: {
+    backgroundColor: 'transparent',
+    justifyContent: 'flex-start',
+  },
   backdropPressable: {
     flex: 1,
   },
@@ -501,6 +522,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderBottomWidth: 0,
     overflow: 'hidden',
+  },
+  sheetContainerFullScreen: {
+    height: '100%',
+    flex: 1,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderWidth: 0,
   },
   dragHandleWrap: {
     width: '100%',

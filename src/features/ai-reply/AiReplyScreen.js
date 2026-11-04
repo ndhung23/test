@@ -97,7 +97,7 @@ Trả về định dạng JSON thuần túy (không bọc trong markdown code bl
           ...prev.slice(1),
         ]);
       }
-      Alert.alert('AI Phân tích xong! ✨', 'Đã dùng Gemini 1.5 Flash tạo các gợi ý phản hồi phù hợp nhất.');
+      Alert.alert('AI Phân tích xong! ✨', 'Đã dùng Google Gemini AI tạo các gợi ý phản hồi phù hợp nhất.');
     } catch (err) {
       Alert.alert('Lỗi kết nối Gemini', err.message || 'Không thể tạo câu trả lời.');
     } finally {

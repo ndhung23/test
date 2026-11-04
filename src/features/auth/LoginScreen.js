@@ -88,7 +88,7 @@ export default function LoginScreen({ navigation }) {
   const handleGoogleLogin = () => {
     Alert.alert(
       isVietnamese ? 'Thông báo' : 'Notice',
-      isVietnamese ? 'Tính năng đang phát triển' : 'Feature under development'
+      isVietnamese ? 'Tính năng sẽ sớm ra mắt' : 'Feature under development'
     );
   };
 
@@ -172,35 +172,6 @@ export default function LoginScreen({ navigation }) {
             <Pressable onPress={() => setShow(!show)} hitSlop={10}>
               <Ionicons name={show ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.sub} />
             </Pressable>
-          </View>
-
-          {/* Gợi ý tài khoản thử nghiệm nhanh */}
-          <View style={styles.quickAccountsRow}>
-            <Text style={[styles.quickAccountsLabel, { color: colors.sub }]}>
-              {isVietnamese ? 'Tài khoản thử nghiệm:' : 'Demo accounts:'}
-            </Text>
-            <View style={styles.quickPillsWrap}>
-              <Pressable
-                onPress={() => {
-                  setEmail('admin');
-                  setPw('1');
-                  setErr('');
-                }}
-                style={[styles.quickPill, { borderColor: '#EF4444', backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
-              >
-                <Text style={[styles.quickPillText, { color: '#EF4444' }]}>🛡️ Admin (admin/1)</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  setEmail('vip');
-                  setPw('123456');
-                  setErr('');
-                }}
-                style={[styles.quickPill, { borderColor: colors.primary, backgroundColor: 'rgba(255, 208, 0, 0.1)' }]}
-              >
-                <Text style={[styles.quickPillText, { color: colors.primary }]}>👑 VIP (vip/123456)</Text>
-              </Pressable>
-            </View>
           </View>
 
           {/* Nút Quên mật khẩu */}

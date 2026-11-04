@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+
+    <title>ToolKit - Tiện Ích Đa Năng</title>
+    <meta name="description" content="ToolKit - Ứng dụng tiện ích đa năng thông minh tích hợp AI, học tập, công cụ & phong cách sống" />
+
+    <!-- PWA Web App Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/png" href="/favicon1.png" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+
+    <!-- Apple Web App Metas -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="ToolKit" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- Theme Colors -->
+    <meta name="theme-color" content="#6366F1" />
+    <meta name="msapplication-navbutton-color" content="#6366F1" />
+    <meta name="msapplication-TileColor" content="#141416" />
+
+    <style>
+      /* CSS Resets tối ưu cho React Native Web & PWA */
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        background-color: #141416;
+        color: #ffffff;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        overflow: hidden;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      #root {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      /* Khung loading mượt mà trước khi React Native mount */
+      #pwa-splash {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #141416;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999;
+        transition: opacity 0.35s ease, visibility 0.35s ease;
+      }
+
+      #pwa-splash.hide {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      .splash-logo {
+        width: 88px;
+        height: 88px;
+        border-radius: 22px;
+        box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+        margin-bottom: 20px;
+        animation: pulseLogo 2s infinite ease-in-out;
+      }
+
+      .splash-spinner {
+        width: 28px;
+        height: 28px;
+        border: 3px solid rgba(255, 255, 255, 0.15);
+        border-top-color: #6366F1;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @keyframes pulseLogo {
+        0%, 100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Màn hình chào Splash Screen khi tải PWA -->
+    <div id="pwa-splash">
+      <img src="/favicon1.png" alt="ToolKit Logo" class="splash-logo" />
+      <div class="splash-spinner"></div>
+    </div>
+
+    <!-- Nơi Metro Web mount ứng dụng React Native -->
+    <div id="root"></div>
+
+    <!-- Đăng ký Service Worker cho PWA -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker
+            .register('/sw.js')
+            .then(function (reg) {
+              console.log('[PWA] Service Worker registered with scope:', reg.scope);
+            })
+            .catch(function (err) {
+              console.warn('[PWA] Service Worker registration failed:', err);
+            });
+        });
+      }
+
+      // Tự động ẩn splash khi React Native app đã render vào #root
+      var observer = new MutationObserver(function () {
+        var root = document.getElementById('root');
+        if (root && root.children.length > 0) {
+          var splash = document.getElementById('pwa-splash');
+          if (splash) {
+            splash.classList.add('hide');
+            setTimeout(function () {
+              if (splash && splash.parentNode) {
+                splash.parentNode.removeChild(splash);
+              }
+            }, 400);
+          }
+          observer.disconnect();
+        }
+      });
+      observer.observe(document.getElementById('root'), { childList: true });
+    </script>
+  </body>
+</html>

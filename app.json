@@ -32,7 +32,15 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon1.png"
+      "bundler": "metro",
+      "favicon": "./assets/favicon1.png",
+      "name": "ToolKit - Tiện Ích Đa Năng",
+      "shortName": "ToolKit",
+      "description": "ToolKit - Ứng dụng tiện ích đa năng thông minh tích hợp AI, học tập, công cụ & phong cách sống",
+      "themeColor": "#6366F1",
+      "backgroundColor": "#141416",
+      "display": "standalone",
+      "orientation": "portrait"
     },
     "plugins": [
       "expo-sharing",

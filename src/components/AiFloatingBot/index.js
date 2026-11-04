@@ -12,8 +12,8 @@ export default function AiFloatingBot() {
       style={[
         StyleSheet.absoluteFillObject,
         {
-          zIndex: 99999,
-          elevation: 99999,
+          zIndex: 999999,
+          elevation: 999999,
         },
       ]}
     >
