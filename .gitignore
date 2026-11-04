@@ -60,3 +60,6 @@ SMOKE_BASELINE.md
 cloudflared.exe
 
 *.apk
+
+*.ipa
+FileBuild/*.ipa
