@@ -5,20 +5,25 @@ on:
 
 jobs:
   build-ipa:
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 60
 
     steps:
       - name: 1. Checkout repository
         uses: actions/checkout@v4
 
-      - name: 2. Setup Node.js
+      - name: 2. Select Xcode 16.2
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          xcodebuild -version
+
+      - name: 3. Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
-      - name: 3. Setup Environment Variables (.env)
+      - name: 4. Setup Environment Variables (.env)
         env:
           EXPO_ENV_FILE: ${{ secrets.EXPO_ENV_FILE }}
         run: |
@@ -30,18 +35,18 @@ jobs:
             echo "Copied .env.example as fallback .env."
           fi
 
-      - name: 4. Install Dependencies
+      - name: 5. Install Dependencies
         run: npm install
 
-      - name: 5. Generate Native iOS Project (Expo Prebuild)
+      - name: 6. Generate Native iOS Project (Expo Prebuild)
         run: npx expo prebuild --platform ios --clean
 
-      - name: 6. Install CocoaPods Dependencies
+      - name: 7. Install CocoaPods Dependencies
         run: |
           cd ios
-          pod install --repo-update
+          pod install
 
-      - name: 7. Build Native ARM64 Archive (Physical iPhone Device)
+      - name: 8. Build Native ARM64 Archive (Physical iPhone Device)
         run: |
           xcodebuild \
             -workspace ios/ToolKit.xcworkspace \
@@ -55,7 +60,7 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             PROVISIONING_PROFILE_SPECIFIER=""
 
-      - name: 8. Package ToolKit-arm64.ipa (ZIP Container)
+      - name: 9. Package ToolKit-arm64.ipa (ZIP Container)
         run: |
           mkdir -p Payload
           cp -r build/ToolKit.xcarchive/Products/Applications/ToolKit.app Payload/
@@ -63,7 +68,7 @@ jobs:
           echo "IPA packaging completed. Size:"
           ls -lh ToolKit-arm64.ipa
 
-      - name: 9. Upload ToolKit-arm64.ipa Artifact
+      - name: 10. Upload ToolKit-arm64.ipa Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ToolKit-arm64-ipa
