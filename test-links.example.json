@@ -1,0 +1,10 @@
+{
+  "youtube": ["https://youtu.be/replace_with_public_video"],
+  "tiktok": ["https://www.tiktok.com/@account/video/replace"],
+  "facebook": [
+    "https://www.facebook.com/share/v/replace",
+    "https://www.facebook.com/reel/replace",
+    "https://fb.watch/replace"
+  ],
+  "instagram": ["https://www.instagram.com/reel/replace/"]
+}

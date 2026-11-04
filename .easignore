@@ -1,0 +1,11 @@
+node_modules/
+.git/
+.expo/
+dist/
+web-build/
+*.exe
+*.apk
+temp_downloads/
+temp_test_downloads/
+*.log
+.metro-health-check*

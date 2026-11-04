@@ -1,0 +1,41 @@
+import { HABIT_TYPES } from '../microHabitService';
+
+export function serializeHabitFormState({
+  title = '',
+  type = HABIT_TYPES.INTERVAL,
+  intervalDays = '30',
+  dayOfMonth = '5',
+  targetCount = '2',
+  unit = 'lần',
+  category = 'Sinh hoạt',
+  customCategory = '',
+  note = '',
+  icon = 'repeat',
+  color = '#10B981',
+  reminderEnabled = false,
+  reminderTime = '08:00',
+  reminderIntervalHours = '0',
+  reminderIntervalMinutes = '0',
+  reminderEndTime = '',
+  startDate = null,
+} = {}) {
+  return JSON.stringify({
+    title: String(title || '').trim(),
+    type: String(type || HABIT_TYPES.INTERVAL),
+    intervalDays: String(parseInt(intervalDays || '30', 10)),
+    dayOfMonth: String(parseInt(dayOfMonth || '5', 10)),
+    targetCount: String(parseInt(targetCount || '2', 10)),
+    unit: String(unit || 'lần').trim(),
+    category: String(category || 'Sinh hoạt').trim(),
+    customCategory: String(customCategory || '').trim(),
+    note: String(note || '').trim(),
+    icon: String(icon || 'repeat'),
+    color: String(color || '#10B981'),
+    reminderEnabled: Boolean(reminderEnabled),
+    reminderTime: String(reminderTime || '08:00').trim(),
+    reminderIntervalHours: String(parseInt(reminderIntervalHours || '0', 10)),
+    reminderIntervalMinutes: String(parseInt(reminderIntervalMinutes || '0', 10)),
+    reminderEndTime: String(reminderEndTime || '').trim(),
+    startDate: startDate ? String(startDate).slice(0, 10) : null,
+  });
+}

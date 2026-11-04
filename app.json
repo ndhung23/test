@@ -1,0 +1,73 @@
+{
+  "expo": {
+    "name": "ToolKit",
+    "slug": "ToolKit",
+    "scheme": "toolkit",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/favicon1.png",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ndhung23.toolkit",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Cho phép ToolKit sử dụng máy ảnh để phục vụ các tiện ích trong ứng dụng.",
+        "NSMicrophoneUsageDescription": "Cho phép ToolKit sử dụng microphone khi mở camera."
+      }
+    },
+    "android": {
+      "package": "com.ndhung23.toolkit",
+      "versionCode": 1,
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#141416",
+        "foregroundImage": "./assets/favicon1.png"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon1.png"
+    },
+    "plugins": [
+      "expo-sharing",
+      "expo-secure-store",
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Cho phép ToolKit sử dụng máy ảnh để phục vụ các tiện ích trong ứng dụng.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/favicon1.png",
+          "color": "#FFD000"
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Cho phép ToolKit truy cập ảnh và video để xác minh video đã lưu.",
+          "savePhotosPermission": "Cho phép ToolKit lưu video đã tải vào Thư viện ảnh."
+        }
+      ],
+      "expo-status-bar",
+      "@react-native-community/datetimepicker"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "cc2f105c-eaed-4770-99e5-0fb47baf4ecd"
+      }
+    }
+  }
+}
