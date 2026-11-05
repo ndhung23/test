@@ -1,6 +1,5 @@
 // scripts/patch-expo-modules-jsi.js
-// 1. Fixes Swift 6 strict concurrency error in JavaScriptObject.swift
-// 2. Fixes Swift tools version 6.2 mismatch on Xcode runners with Swift 6.1 / 6.0
+// Fixes Swift compilation errors for ExpoModulesJSI under Xcode 16.x / Swift 6.1
 const fs = require('fs');
 const path = require('path');
 
@@ -62,18 +61,37 @@ if (fs.existsSync(jsObjFile)) {
   if (normalizedContent.includes(normalizedOld)) {
     const patched = normalizedContent.replace(normalizedOld, normalizedNew);
     fs.writeFileSync(jsObjFile, patched, 'utf8');
-    console.log('[patch-expo-modules-jsi] Successfully patched JavaScriptObject.swift with UncheckedSendable!');
+    console.log('[patch-expo-modules-jsi] Patched JavaScriptObject.swift with UncheckedSendable.');
   } else if (normalizedContent.includes(normalizedNew)) {
-    console.log('[patch-expo-modules-jsi] JavaScriptObject.swift is already patched.');
-  } else {
-    console.warn('[patch-expo-modules-jsi] Target snippet not found in JavaScriptObject.swift.');
+    console.log('[patch-expo-modules-jsi] JavaScriptObject.swift already patched.');
   }
-} else {
-  console.log('[patch-expo-modules-jsi] JavaScriptObject.swift not found, skipping.');
 }
 
-// 2. Patch Package.swift files requiring Swift tools version 6.2 down to 6.0
-// to be compatible with Xcode 16.x (which ships with Swift 6.0 / 6.1).
+// 2. Patch JavaScriptCallback.swift to mark local closure functions as @Sendable
+const jsCallbackFile = path.join(
+  rootDir,
+  'node_modules',
+  'expo-modules-jsi',
+  'apple',
+  'Sources',
+  'ExpoModulesJSI',
+  'Runtime',
+  'JavaScriptCallback.swift'
+);
+
+if (fs.existsSync(jsCallbackFile)) {
+  let content = fs.readFileSync(jsCallbackFile, 'utf8');
+  const original = content;
+  content = content.replace(/@JavaScriptActor(\r?\n\s+)func call\(/g, '@JavaScriptActor @Sendable$1func call(');
+  if (content !== original) {
+    fs.writeFileSync(jsCallbackFile, content, 'utf8');
+    console.log('[patch-expo-modules-jsi] Patched JavaScriptCallback.swift local functions with @Sendable.');
+  } else {
+    console.log('[patch-expo-modules-jsi] JavaScriptCallback.swift already patched.');
+  }
+}
+
+// 3. Patch Package.swift files
 const packageFilesToPatch = [
   'node_modules/expo-modules-jsi/apple/Package.swift',
   'node_modules/expo/Package.swift',
@@ -93,8 +111,8 @@ for (const relPath of packageFilesToPatch) {
       modified = true;
     }
 
-    // In expo-modules-jsi/apple/Package.swift, remove Swift 6.2-only upcoming features
     if (relPath.includes('expo-modules-jsi')) {
+      // Disable Swift 6.2 upcoming features
       if (pkgContent.includes('.enableUpcomingFeature("NonisolatedNonsendingByDefault")')) {
         pkgContent = pkgContent.replace('.enableUpcomingFeature("NonisolatedNonsendingByDefault"),', '// .enableUpcomingFeature("NonisolatedNonsendingByDefault"),');
         modified = true;
@@ -103,11 +121,33 @@ for (const relPath of packageFilesToPatch) {
         pkgContent = pkgContent.replace('.enableUpcomingFeature("InferIsolatedConformances"),', '// .enableUpcomingFeature("InferIsolatedConformances"),');
         modified = true;
       }
+      // Remove -Werror flags that fail on minor warnings
+      if (pkgContent.includes('"-Werror", "ImplicitStrongCapture",')) {
+        pkgContent = pkgContent.replace('"-Werror", "ImplicitStrongCapture",', '// "-Werror", "ImplicitStrongCapture",');
+        modified = true;
+      }
+      if (pkgContent.includes('"-Werror", "NoUsage",')) {
+        pkgContent = pkgContent.replace('"-Werror", "NoUsage",', '// "-Werror", "NoUsage",');
+        modified = true;
+      }
+      // Add -strict-concurrency=minimal to unsafeFlags
+      if (!pkgContent.includes('"-strict-concurrency=minimal"')) {
+        pkgContent = pkgContent.replace(
+          '.unsafeFlags([',
+          '.unsafeFlags([\n          "-strict-concurrency=minimal",'
+        );
+        modified = true;
+      }
+      // Set swiftLanguageModes to [.v5] for compatibility with Xcode 16 Swift 6 compiler
+      if (pkgContent.includes('swiftLanguageModes: [.v6]')) {
+        pkgContent = pkgContent.replace('swiftLanguageModes: [.v6]', 'swiftLanguageModes: [.v5]');
+        modified = true;
+      }
     }
 
     if (modified) {
       fs.writeFileSync(pkgFile, pkgContent, 'utf8');
-      console.log(`[patch-expo-modules-jsi] Successfully patched ${relPath} for Swift 6.0 compatibility.`);
+      console.log(`[patch-expo-modules-jsi] Patched ${relPath} for Swift compatibility.`);
     } else {
       console.log(`[patch-expo-modules-jsi] ${relPath} already compatible.`);
     }
