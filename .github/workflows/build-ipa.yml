@@ -15,7 +15,7 @@ jobs:
       - name: 1. Checkout repository
         uses: actions/checkout@v4
 
-      - name: 2. Select Latest Xcode with Swift 6.2+
+      - name: 2. Select Latest Xcode
         run: |
           for app in /Applications/Xcode.app /Applications/Xcode_16.4*.app /Applications/Xcode_16*.app; do
             if [ -d "$app" ]; then
@@ -51,12 +51,15 @@ jobs:
       - name: 6. Generate Native iOS Project (Expo Prebuild)
         run: npx expo prebuild --platform ios --clean
 
-      - name: 7. Install CocoaPods Dependencies
+      - name: 7. Apply Expo Modules Swift Patches
+        run: node scripts/patch-expo-modules-jsi.js
+
+      - name: 8. Install CocoaPods Dependencies
         run: |
           cd ios
           pod install
 
-      - name: 8. Build Native ARM64 Archive (Physical iPhone Device)
+      - name: 9. Build Native ARM64 Archive (Physical iPhone Device)
         run: |
           xcodebuild \
             -workspace ios/ToolKit.xcworkspace \
@@ -70,17 +73,20 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             PROVISIONING_PROFILE_SPECIFIER=""
 
-      - name: 9. Package ToolKit-arm64.ipa (ZIP Container)
+      - name: 10. Package ToolKit-arm64.ipa (ZIP Container)
         run: |
           mkdir -p Payload
-          APP_DIR=$(find build -name "ToolKit.app" -type d | head -n 1)
+          APP_DIR="build/ToolKit.xcarchive/Products/Applications/ToolKit.app"
+          if [ ! -d "$APP_DIR" ]; then
+            APP_DIR=$(find build -name "*.app" -type d | head -n 1)
+          fi
           echo "Packaging from: $APP_DIR"
           cp -r "$APP_DIR" Payload/
           zip -r ToolKit-arm64.ipa Payload/
           echo "IPA packaging completed. Size:"
           ls -lh ToolKit-arm64.ipa
 
-      - name: 10. Upload ToolKit-arm64.ipa Artifact
+      - name: 11. Upload ToolKit-arm64.ipa Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ToolKit-arm64-ipa
