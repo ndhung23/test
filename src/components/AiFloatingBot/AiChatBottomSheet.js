@@ -11,7 +11,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-  Dimensions,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
@@ -27,14 +26,7 @@ import {
   setCustomGeminiKey,
 } from '../../services/geminiService';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const PROMPT_SUGGESTIONS = [
-  { label: '✍️ Soạn tin nhắn lịch sự', prompt: 'Hãy giúp tôi viết lại tin nhắn sau một cách chuyên nghiệp, lịch sự và nhã nhặn: ' },
-  { label: '🌐 Dịch sang tiếng Anh', prompt: 'Hãy dịch đoạn văn bản sau sang tiếng Anh tự nhiên, chuẩn văn phong giao tiếp: ' },
-  { label: '💡 Gợi ý trả lời khéo léo', prompt: 'Khách hàng nhắn tin hỏi như sau, hãy gợi ý cho tôi 3 cách trả lời khéo léo và thuyết phục: ' },
-  { label: '📝 Tóm tắt ngắn gọn', prompt: 'Hãy tóm tắt ngắn gọn các ý chính của đoạn văn bản sau trong 3 gạch đầu dòng: ' },
-];
 
 export default function AiChatBottomSheet({ visible, onClose }) {
   const { colors } = useTheme();
@@ -280,21 +272,30 @@ export default function AiChatBottomSheet({ visible, onClose }) {
       visible={visible}
       animationType="slide"
       transparent
+      statusBarTranslucent={true}
       onRequestClose={onClose}
     >
-      <View style={[styles.modalOverlay, isFullScreen && styles.modalOverlayFullScreen]}>
+      <View
+        style={[
+          styles.modalOverlay,
+          isFullScreen
+            ? [styles.modalOverlayFullScreen, { backgroundColor: colors.bg }]
+            : styles.modalOverlayPartial,
+        ]}
+      >
         {!isFullScreen && <Pressable style={styles.backdropPressable} onPress={onClose} />}
 
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={0}
           style={[
             styles.sheetContainer,
-            isFullScreen && styles.sheetContainerFullScreen,
+            isFullScreen ? styles.sheetContainerFullScreen : styles.sheetContainerPartial,
             {
               backgroundColor: colors.bg,
               borderColor: colors.cardBorder,
-              paddingTop: isFullScreen ? Math.max(insets.top, 12) : 0,
-              paddingBottom: insets.bottom || 12,
+              paddingTop: isFullScreen ? Math.max(insets.top, 14) : 0,
+              paddingBottom: Math.max(insets.bottom, 12),
             },
           ]}
         >
@@ -385,6 +386,7 @@ export default function AiChatBottomSheet({ visible, onClose }) {
 
           {/* Danh sách tin nhắn dùng FlatList */}
           <FlatList
+            style={{ flex: 1 }}
             ref={flatListRef}
             data={messages}
             keyExtractor={(item) => item.id}
@@ -412,6 +414,7 @@ export default function AiChatBottomSheet({ visible, onClose }) {
           {/* Ô nhập tin nhắn */}
           <View style={[styles.inputContainer, { borderTopColor: colors.cardBorder, backgroundColor: colors.card }]}>
             <TextInput
+              disableFullscreenUI={true}
               value={inputText}
               onChangeText={setInputText}
               placeholder={t('aiBot.inputPlaceholder')}
@@ -446,58 +449,56 @@ export default function AiChatBottomSheet({ visible, onClose }) {
         </KeyboardAvoidingView>
       </View>
 
-      {/* Modal Cài đặt API Key cá nhân */}
-      <Modal
-        visible={settingsVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setSettingsVisible(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.settingsOverlay}
-        >
-          <View style={[styles.settingsBox, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-            <View style={styles.settingsHeader}>
-              <Ionicons name="key-outline" size={20} color="#6366F1" />
-              <Text style={[styles.settingsTitle, { color: colors.text }]}>{t('aiBot.apiKeySettings')}</Text>
+      {/* Overlay Cài đặt API Key cá nhân (tránh lồng Modal gây đen màn hình) */}
+      {settingsVisible && (
+        <View style={StyleSheet.absoluteFillObject}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.settingsOverlay}
+          >
+            <View style={[styles.settingsBox, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+              <View style={styles.settingsHeader}>
+                <Ionicons name="key-outline" size={20} color="#6366F1" />
+                <Text style={[styles.settingsTitle, { color: colors.text }]}>{t('aiBot.apiKeySettings')}</Text>
+              </View>
+
+              <Text style={[styles.settingsSub, { color: colors.sub }]}>
+                {t('aiBot.apiKeyDesc')}
+              </Text>
+
+              <TextInput
+                disableFullscreenUI={true}
+                value={customKeyInput}
+                onChangeText={setCustomKeyInput}
+                placeholder={t('aiBot.apiKeyPlaceholder')}
+                placeholderTextColor={colors.sub}
+                style={[
+                  styles.settingsInput,
+                  { backgroundColor: colors.bg, borderColor: colors.cardBorder, color: colors.text },
+                ]}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+
+              <View style={styles.settingsActions}>
+                <Pressable
+                  onPress={() => setSettingsVisible(false)}
+                  style={[styles.settingsBtn, { backgroundColor: colors.bg }]}
+                >
+                  <Text style={{ color: colors.sub, fontWeight: '700' }}>{t('settings.cancel')}</Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={handleSaveCustomKey}
+                  style={[styles.settingsBtn, { backgroundColor: '#6366F1' }]}
+                >
+                  <Text style={{ color: '#FFFFFF', fontWeight: '800' }}>{t('aiBot.saveKey')}</Text>
+                </Pressable>
+              </View>
             </View>
-
-            <Text style={[styles.settingsSub, { color: colors.sub }]}>
-              {t('aiBot.apiKeyDesc')}
-            </Text>
-
-            <TextInput
-              value={customKeyInput}
-              onChangeText={setCustomKeyInput}
-              placeholder={t('aiBot.apiKeyPlaceholder')}
-              placeholderTextColor={colors.sub}
-              style={[
-                styles.settingsInput,
-                { backgroundColor: colors.bg, borderColor: colors.cardBorder, color: colors.text },
-              ]}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-
-            <View style={styles.settingsActions}>
-              <Pressable
-                onPress={() => setSettingsVisible(false)}
-                style={[styles.settingsBtn, { backgroundColor: colors.bg }]}
-              >
-                <Text style={{ color: colors.sub, fontWeight: '700' }}>{t('settings.cancel')}</Text>
-              </Pressable>
-
-              <Pressable
-                onPress={handleSaveCustomKey}
-                style={[styles.settingsBtn, { backgroundColor: '#6366F1' }]}
-              >
-                <Text style={{ color: '#FFFFFF', fontWeight: '800' }}>{t('aiBot.saveKey')}</Text>
-              </Pressable>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+          </KeyboardAvoidingView>
+        </View>
+      )}
     </Modal>
   );
 }
@@ -505,27 +506,36 @@ export default function AiChatBottomSheet({ visible, onClose }) {
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    justifyContent: 'flex-end',
+    width: '100%',
+    height: '100%',
   },
   modalOverlayFullScreen: {
-    backgroundColor: 'transparent',
     justifyContent: 'flex-start',
+  },
+  modalOverlayPartial: {
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'flex-end',
   },
   backdropPressable: {
     flex: 1,
   },
   sheetContainer: {
-    height: SCREEN_HEIGHT * 0.78,
+    width: '100%',
+    overflow: 'hidden',
+  },
+  sheetContainerPartial: {
+    height: '82%',
+    maxHeight: '82%',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderWidth: 1,
     borderBottomWidth: 0,
-    overflow: 'hidden',
   },
   sheetContainerFullScreen: {
-    height: '100%',
     flex: 1,
+    height: '100%',
+    width: '100%',
+    maxHeight: '100%',
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,
     borderWidth: 0,

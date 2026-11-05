@@ -197,13 +197,13 @@ function ForgotPasswordModalContent({
             <View style={[styles.inputBox, { borderColor: colors.border, backgroundColor: colors.bg, width: '100%', marginBottom: 10, marginTop: 6 }]}>
               <Ionicons name="keypad-outline" size={20} color={colors.sub} />
               <TextInput
+                disableFullscreenUI={true}
                 value={otpInput}
                 onChangeText={setOtpInput}
                 placeholder={isVietnamese ? 'Nhập mã 6 chữ số' : 'Enter 6-digit code'}
                 placeholderTextColor={colors.sub}
                 keyboardType="number-pad"
                 maxLength={6}
-                autoFocus
                 style={[styles.inputField, { color: colors.text, letterSpacing: 4, fontWeight: '700' }]}
               />
             </View>
@@ -212,6 +212,7 @@ function ForgotPasswordModalContent({
             <View style={[styles.inputBox, { borderColor: colors.border, backgroundColor: colors.bg, width: '100%', marginBottom: 10 }]}>
               <Ionicons name="lock-closed-outline" size={20} color={colors.sub} />
               <TextInput
+                disableFullscreenUI={true}
                 value={newPw}
                 onChangeText={setNewPw}
                 placeholder={isVietnamese ? 'Mật khẩu mới (tối thiểu 6 ký tự)' : 'New password (min 6 chars)'}
@@ -235,6 +236,7 @@ function ForgotPasswordModalContent({
             <View style={[styles.inputBox, { borderColor: colors.border, backgroundColor: colors.bg, width: '100%', marginBottom: 10 }]}>
               <Ionicons name="shield-checkmark-outline" size={20} color={colors.sub} />
               <TextInput
+                disableFullscreenUI={true}
                 value={confirmPw}
                 onChangeText={setConfirmPw}
                 placeholder={isVietnamese ? 'Xác nhận lại mật khẩu mới' : 'Confirm new password'}
@@ -332,6 +334,7 @@ function ForgotPasswordModalContent({
             <View style={[styles.inputBox, { borderColor: colors.border, backgroundColor: colors.bg, width: '100%', marginTop: 14 }]}>
               <Ionicons name="mail-outline" size={20} color={colors.sub} />
               <TextInput
+                disableFullscreenUI={true}
                 value={identifier}
                 onChangeText={setIdentifier}
                 placeholder={isVietnamese ? 'Nhập email tài khoản' : 'Enter account email'}

@@ -317,7 +317,6 @@ export default function MultiScreen({ navigation }) {
                 styles.renameInput,
                 { backgroundColor: colors.bg, borderColor: colors.cardBorder, color: colors.text },
               ]}
-              autoFocus
               returnKeyType="done"
               onSubmitEditing={handleSaveRename}
             />

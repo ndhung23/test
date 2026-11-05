@@ -38,8 +38,9 @@ const DrawerNav = createDrawerNavigator();
 
 /* ---------- 1. AUTH STACK (Chưa đăng nhập) ---------- */
 function AuthStack() {
+  const { colors } = useTheme();
   return (
-    <AuthStackNav.Navigator screenOptions={{ headerShown: false }}>
+    <AuthStackNav.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
       <AuthStackNav.Screen name="Login" component={LoginScreen} />
     </AuthStackNav.Navigator>
   );
@@ -275,6 +276,7 @@ function AppDrawer() {
     <DrawerNav.Navigator
       drawerContent={(props) => <CustomDrawer {...props} />}
       screenOptions={{
+        sceneContainerStyle: { backgroundColor: colors.bg },
         drawerActiveTintColor: '#121214',
         drawerActiveBackgroundColor: colors.primary,
         drawerInactiveTintColor: colors.text,

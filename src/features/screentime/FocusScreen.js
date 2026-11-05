@@ -332,7 +332,6 @@ export default function FocusScreen({ navigation }) {
                 styles.customInputBox,
                 { color: colors.text, borderColor: colors.primary, backgroundColor: colors.bg },
               ]}
-              autoFocus
             />
 
             <View style={styles.modalActions}>

@@ -19,6 +19,7 @@
     "android": {
       "package": "com.ndhung23.toolkit",
       "versionCode": 1,
+      "softwareKeyboardLayoutMode": "pan",
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ],

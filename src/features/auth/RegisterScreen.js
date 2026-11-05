@@ -109,6 +109,7 @@ export default function RegisterScreen({ navigation }) {
       <FlatList
         data={[]}
         renderItem={null}
+        style={{ flex: 1 }}
         ListHeaderComponent={
           <>
             {/* Thanh điều hướng quay lại */}
@@ -151,6 +152,7 @@ export default function RegisterScreen({ navigation }) {
           <View style={[styles.inputBox, { borderColor: colors.border, backgroundColor: colors.bg }]}>
             <Ionicons name="person-outline" size={20} color={colors.sub} />
             <TextInput
+              disableFullscreenUI={true}
               value={username}
               onChangeText={setUsername}
               placeholder={t('auth.usernameOrEmail')}
@@ -166,6 +168,7 @@ export default function RegisterScreen({ navigation }) {
           <View style={[styles.inputBox, { borderColor: colors.border, backgroundColor: colors.bg }]}>
             <Ionicons name="lock-closed-outline" size={20} color={colors.sub} />
             <TextInput
+              disableFullscreenUI={true}
               value={pw}
               onChangeText={setPw}
               placeholder={t('auth.password')}
@@ -185,6 +188,7 @@ export default function RegisterScreen({ navigation }) {
           <View style={[styles.inputBox, { borderColor: colors.border, backgroundColor: colors.bg }]}>
             <Ionicons name="shield-checkmark-outline" size={20} color={colors.sub} />
             <TextInput
+              disableFullscreenUI={true}
               value={confirmPw}
               onChangeText={setConfirmPw}
               placeholder={t('auth.confirmPassword')}

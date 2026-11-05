@@ -112,6 +112,7 @@ export default function HabitFormModal({
             </View>
 
             <FlatList
+              style={{ flex: 1 }}
               data={[{ key: 'form-body' }]}
               keyExtractor={(item) => item.key}
               keyboardShouldPersistTaps="handled"

@@ -78,7 +78,7 @@ function MainApp() {
   }, []);
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <NavigationContainer
         ref={navigationRef}
         theme={navTheme}

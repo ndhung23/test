@@ -284,6 +284,7 @@ export function FapExamFormModal({
           )}
 
           <FlatList
+            style={{ flex: 1 }}
             data={[]}
             renderItem={null}
             keyboardShouldPersistTaps="handled"

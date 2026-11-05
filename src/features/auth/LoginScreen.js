@@ -104,6 +104,7 @@ export default function LoginScreen({ navigation }) {
       <FlatList
         data={[]}
         renderItem={null}
+        style={{ flex: 1 }}
         ListHeaderComponent={
           <>
             {/* Nút quay lại nếu đến từ màn hình khác */}
@@ -144,6 +145,7 @@ export default function LoginScreen({ navigation }) {
           <View style={[styles.inputBox, { borderColor: colors.border, backgroundColor: colors.bg }]}>
             <Ionicons name="person-outline" size={20} color={colors.sub} />
             <TextInput
+              disableFullscreenUI={true}
               value={email}
               onChangeText={setEmail}
               placeholder={t('auth.usernameOrEmail')}
@@ -158,6 +160,7 @@ export default function LoginScreen({ navigation }) {
           <View style={[styles.inputBox, { borderColor: colors.border, backgroundColor: colors.bg }]}>
             <Ionicons name="lock-closed-outline" size={20} color={colors.sub} />
             <TextInput
+              disableFullscreenUI={true}
               value={pw}
               onChangeText={setPw}
               placeholder={t('auth.password')}
@@ -259,7 +262,6 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
     paddingHorizontal: 24,
     paddingVertical: 40,
   },
