@@ -98,11 +98,77 @@ if (fs.existsSync(jsRuntimeFile)) {
     modified = true;
   }
 
+  // Handle vector.push_back(consuming: propNameId) -> vector.push_back(propNameId) for Swift 6.1 C++ interop
+  if (content.includes('vector.push_back(consuming: propNameId)')) {
+    content = content.replace('vector.push_back(consuming: propNameId)', 'vector.push_back(propNameId)');
+    modified = true;
+  }
+
+  // Handle expo.HostFunctionClosure constructor for Swift 6.1 (reference types lack synthesized init)
+  if (content.includes('return expo.HostFunctionClosure(context, call, deallocate)')) {
+    content = content.replace(
+      'return expo.HostFunctionClosure(context, call, deallocate)',
+      'return expo.createHostFunctionClosure(context, call, deallocate)'
+    );
+    modified = true;
+  }
+
   if (modified) {
     fs.writeFileSync(jsRuntimeFile, content, 'utf8');
     console.log('[patch-expo-modules-jsi] Patched JavaScriptRuntime.swift.');
   } else {
     console.log('[patch-expo-modules-jsi] JavaScriptRuntime.swift already patched.');
+  }
+}
+
+// 2b. Patch HostFunctionClosure.h to provide factory function for Swift 6.1
+const hostFuncClosureHeader = path.join(
+  rootDir,
+  'node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI-Cxx/include/HostFunctionClosure.h'
+);
+
+if (fs.existsSync(hostFuncClosureHeader)) {
+  let headerContent = fs.readFileSync(hostFuncClosureHeader, 'utf8').replace(/\r\n/g, '\n');
+  let modified = false;
+
+  if (!headerContent.includes('createHostFunctionClosure')) {
+    const target = '} SWIFT_IMMORTAL_REFERENCE; // class HostFunctionClosure';
+    const replacement = `} SWIFT_IMMORTAL_REFERENCE; // class HostFunctionClosure
+
+inline HostFunctionClosure *createHostFunctionClosure(RetainedSwiftPointer::Context context, HostFunctionClosure::Closure closure, RetainedSwiftPointer::Deallocator deallocator) {
+  return new HostFunctionClosure(context, closure, deallocator);
+}`;
+    if (headerContent.includes(target)) {
+      headerContent = headerContent.replace(target, replacement);
+      modified = true;
+    }
+  }
+
+  if (modified) {
+    fs.writeFileSync(hostFuncClosureHeader, headerContent, 'utf8');
+    console.log('[patch-expo-modules-jsi] Patched HostFunctionClosure.h.');
+  } else {
+    console.log('[patch-expo-modules-jsi] HostFunctionClosure.h already patched.');
+  }
+}
+
+// 2c. Patch Task+immediate.swift for Swift 6.1 / Xcode 16.4 compatibility
+const taskImmediateFile = path.join(
+  rootDir,
+  'node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Extensions/Task+immediate.swift'
+);
+
+if (fs.existsSync(taskImmediateFile)) {
+  let taskContent = fs.readFileSync(taskImmediateFile, 'utf8').replace(/\r\n/g, '\n');
+  if (taskContent.includes('Task.immediate(') || taskContent.includes('Task(name: name,')) {
+    const targetRegex = /if #available\(macOS 26\.0,[\s\S]*?return Task\(name: name, priority: \.high, operation: operation\)\s*\}/;
+    if (targetRegex.test(taskContent)) {
+      taskContent = taskContent.replace(targetRegex, '_ = name\n    return Task(priority: priority ?? .high, operation: operation)');
+      fs.writeFileSync(taskImmediateFile, taskContent, 'utf8');
+      console.log('[patch-expo-modules-jsi] Patched Task+immediate.swift.');
+    }
+  } else {
+    console.log('[patch-expo-modules-jsi] Task+immediate.swift already patched.');
   }
 }
 
