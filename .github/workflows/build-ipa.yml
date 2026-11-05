@@ -54,6 +54,21 @@ jobs:
       - name: 6. Generate Native iOS Project (Expo Prebuild)
         run: npx expo prebuild --platform ios --clean
 
+      - name: 6.1. Strip APNs Entitlements for Free Apple ID / Sideload Compatibility
+        run: |
+          echo "=== Scanning and removing aps-environment entitlement ==="
+          find ios -name "*.entitlements" | while read -r ent; do
+            echo "Checking entitlements: $ent"
+            if /usr/libexec/PlistBuddy -c "Print :aps-environment" "$ent" 2>/dev/null; then
+              echo "Removing aps-environment from $ent..."
+              /usr/libexec/PlistBuddy -c "Delete :aps-environment" "$ent" || true
+            fi
+          done
+          echo "=== Scanning Info.plist for remote-notification background mode ==="
+          find ios -name "Info.plist" | while read -r plist; do
+            /usr/libexec/PlistBuddy -c "Delete :UIBackgroundModes" "$plist" 2>/dev/null || true
+          done
+
       - name: 7. Apply Expo Modules Swift Patches
         run: node scripts/patch-expo-modules-jsi.js
 
@@ -77,7 +92,7 @@ jobs:
             PROVISIONING_PROFILE_SPECIFIER="" \
             SWIFT_STRICT_CONCURRENCY=minimal
 
-      - name: 10. Package ToolKit-arm64.ipa (ZIP Container)
+      - name: 10. Package & Ad-Hoc Sign ToolKit-arm64.ipa
         run: |
           rm -rf Payload ToolKit-arm64.ipa
           mkdir -p Payload
@@ -89,8 +104,36 @@ jobs:
             echo "::error::Application bundle (.app) not found in build directory!"
             exit 1
           fi
+
           echo "Packaging from: $APP_DIR"
           cp -r "$APP_DIR" Payload/
+          TARGET_APP="Payload/ToolKit.app"
+
+          # Remove stale/invalid provisioning profiles if present
+          rm -f "$TARGET_APP/embedded.mobileprovision"
+
+          echo "=== Ad-hoc signing embedded frameworks ==="
+          if [ -d "$TARGET_APP/Frameworks" ]; then
+            for fw in "$TARGET_APP/Frameworks/"*.framework; do
+              if [ -d "$fw" ]; then
+                echo "Signing framework: $(basename "$fw")"
+                codesign --force --sign - --timestamp=none "$fw" || true
+              fi
+            done
+            for dylib in "$TARGET_APP/Frameworks/"*.dylib; do
+              if [ -f "$dylib" ]; then
+                echo "Signing dylib: $(basename "$dylib")"
+                codesign --force --sign - --timestamp=none "$dylib" || true
+              fi
+            done
+          fi
+
+          echo "=== Ad-hoc signing main executable and bundle ==="
+          codesign --force --sign - --timestamp=none "$TARGET_APP" || true
+
+          echo "=== Verifying signature of main bundle ==="
+          codesign -dvvv "$TARGET_APP" 2>&1 | head -n 20 || true
+
           zip -r ToolKit-arm64.ipa Payload/
           echo "IPA packaging completed. Size:"
           ls -lh ToolKit-arm64.ipa
