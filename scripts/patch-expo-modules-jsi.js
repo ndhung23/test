@@ -178,6 +178,50 @@ inline void appendPropNameId(HostObjectCallbacks::PropNameIds &vector, facebook:
   }
 }
 
+// 2ab. Patch JSIUtils.h to accept pointer in errorFromValue (avoids Swift SILGen crash on loading ~Copyable member)
+const jsiUtilsHeader = path.join(
+  rootDir,
+  'node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI-Cxx/include/JSIUtils.h'
+);
+
+if (fs.existsSync(jsiUtilsHeader)) {
+  let content = fs.readFileSync(jsiUtilsHeader, 'utf8').replace(/\r\n/g, '\n');
+  if (content.includes('inline jsi::JSError errorFromValue(jsi::IRuntime &runtime, jsi::Value value)')) {
+    content = content.replace(
+      'inline jsi::JSError errorFromValue(jsi::IRuntime &runtime, jsi::Value value)',
+      'inline jsi::JSError errorFromValue(jsi::IRuntime &runtime, jsi::Value *_Nonnull value)'
+    );
+    content = content.replace(
+      'return jsi::JSError(runtime, std::move(value));',
+      'return jsi::JSError(runtime, std::move(*value));'
+    );
+    fs.writeFileSync(jsiUtilsHeader, content, 'utf8');
+    console.log('[patch-expo-modules-jsi] Patched JSIUtils.h for errorFromValue pointer.');
+  } else {
+    console.log('[patch-expo-modules-jsi] JSIUtils.h already patched.');
+  }
+}
+
+// 2ac. Patch JavaScriptError.swift to pass pointer &value.pointee
+const jsErrorFile = path.join(
+  rootDir,
+  'node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptError.swift'
+);
+
+if (fs.existsSync(jsErrorFile)) {
+  let content = fs.readFileSync(jsErrorFile, 'utf8').replace(/\r\n/g, '\n');
+  if (content.includes('self.pointee = expo.errorFromValue(runtime.pointee, value.pointee)')) {
+    content = content.replace(
+      'self.pointee = expo.errorFromValue(runtime.pointee, value.pointee)',
+      'self.pointee = expo.errorFromValue(runtime.pointee, &value.pointee)'
+    );
+    fs.writeFileSync(jsErrorFile, content, 'utf8');
+    console.log('[patch-expo-modules-jsi] Patched JavaScriptError.swift for errorFromValue pointer.');
+  } else {
+    console.log('[patch-expo-modules-jsi] JavaScriptError.swift already patched.');
+  }
+}
+
 // 2b. Patch HostFunctionClosure.h to provide factory function for Swift 6.1
 const hostFuncClosureHeader = path.join(
   rootDir,
