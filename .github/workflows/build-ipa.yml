@@ -15,9 +15,9 @@ jobs:
       - name: 1. Checkout repository
         uses: actions/checkout@v4
 
-      - name: 2. Select Xcode
+      - name: 2. Select Latest Xcode with Swift 6.2+
         run: |
-          for app in /Applications/Xcode_16.2.app /Applications/Xcode_16*.app /Applications/Xcode.app; do
+          for app in /Applications/Xcode.app /Applications/Xcode_16.4*.app /Applications/Xcode_16*.app; do
             if [ -d "$app" ]; then
               echo "Selecting Xcode from $app"
               sudo xcode-select -s "$app/Contents/Developer"
