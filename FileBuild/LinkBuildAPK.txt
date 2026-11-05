@@ -1,2 +1,1 @@
-Dashboard: https://expo.dev/accounts/ndhung23/projects/ToolKit/builds/1a2f317b-00f5-4485-883c-3fc4747f2b2b
-Direct APK: https://expo.dev/artifacts/eas/9s04Gbck3N6nlCYIxT-IvTse9SpbGT9gAvW9mB-9XCM.apk
+Dashboard: https://expo.dev/accounts/ndhung23/projects/ToolKit/builds/d16851ac-9945-4a01-b04f-ac321cd1f2e1

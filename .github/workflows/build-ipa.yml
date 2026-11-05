@@ -2,6 +2,9 @@ name: Build iOS IPA (Physical iPhone ARM64)
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
   build-ipa:
@@ -12,9 +15,9 @@ jobs:
       - name: 1. Checkout repository
         uses: actions/checkout@v4
 
-      - name: 2. Select Xcode with Swift 6.2+ (Xcode 26+)
+      - name: 2. Select Xcode
         run: |
-          for app in /Applications/Xcode_26.0.1.app /Applications/Xcode_26.1.1.app /Applications/Xcode_26.2.app /Applications/Xcode_26.3.app /Applications/Xcode_26*.app /Applications/Xcode.app; do
+          for app in /Applications/Xcode_16.2.app /Applications/Xcode_16*.app /Applications/Xcode.app; do
             if [ -d "$app" ]; then
               echo "Selecting Xcode from $app"
               sudo xcode-select -s "$app/Contents/Developer"
