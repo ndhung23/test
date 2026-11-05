@@ -98,9 +98,27 @@ if (fs.existsSync(jsRuntimeFile)) {
     modified = true;
   }
 
-  // Handle vector.push_back(consuming: propNameId) -> vector.push_back(propNameId) for Swift 6.1 C++ interop
-  if (content.includes('vector.push_back(consuming: propNameId)')) {
-    content = content.replace('vector.push_back(consuming: propNameId)', 'vector.push_back(propNameId)');
+  // Handle vector.push_back(consuming: propNameId) / vector.push_back(propNameId):
+  // facebook::jsi::PropNameID is move-only (deleted copy constructor).
+  // In Swift 6.1 C++ interop, passing it to push_back calls copy constructor unless moved in C++.
+  // We use expo.appendPropNameId(&vector, iRuntime, std.string(propertyName)) which moves it in C++.
+  const pushBackPattern1 = `      for propertyName in propertyNames {
+        let propNameId = facebook.jsi.PropNameID.forUtf8(iRuntime, std.string(propertyName))
+        vector.push_back(consuming: propNameId)
+      }`;
+  const pushBackPattern2 = `      for propertyName in propertyNames {
+        let propNameId = facebook.jsi.PropNameID.forUtf8(iRuntime, std.string(propertyName))
+        vector.push_back(propNameId)
+      }`;
+  const pushBackReplacement = `      for propertyName in propertyNames {
+        expo.appendPropNameId(&vector, iRuntime, std.string(propertyName))
+      }`;
+
+  if (content.includes(pushBackPattern1)) {
+    content = content.replace(pushBackPattern1, pushBackReplacement);
+    modified = true;
+  } else if (content.includes(pushBackPattern2)) {
+    content = content.replace(pushBackPattern2, pushBackReplacement);
     modified = true;
   }
 
@@ -118,6 +136,45 @@ if (fs.existsSync(jsRuntimeFile)) {
     console.log('[patch-expo-modules-jsi] Patched JavaScriptRuntime.swift.');
   } else {
     console.log('[patch-expo-modules-jsi] JavaScriptRuntime.swift already patched.');
+  }
+}
+
+// 2aa. Patch HostObjectCallbacks.h for appendPropNameId helper (C++ move for move-only PropNameID)
+const hostObjectCallbacksHeader = path.join(
+  rootDir,
+  'node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI-Cxx/include/HostObjectCallbacks.h'
+);
+
+if (fs.existsSync(hostObjectCallbacksHeader)) {
+  let headerContent = fs.readFileSync(hostObjectCallbacksHeader, 'utf8').replace(/\r\n/g, '\n');
+  let modified = false;
+
+  if (!headerContent.includes('#include "IRuntimeCompat.h"')) {
+    headerContent = headerContent.replace(
+      '#include "RetainedSwiftPointer.h"',
+      '#include "RetainedSwiftPointer.h"\n#include "IRuntimeCompat.h"'
+    );
+    modified = true;
+  }
+
+  if (!headerContent.includes('appendPropNameId')) {
+    const target = '} SWIFT_NONCOPYABLE; // class HostObjectCallbacks';
+    const replacement = `} SWIFT_NONCOPYABLE; // class HostObjectCallbacks
+
+inline void appendPropNameId(HostObjectCallbacks::PropNameIds &vector, facebook::jsi::IRuntime &runtime, const std::string &name) {
+  vector.push_back(facebook::jsi::PropNameID::forUtf8(runtime, name));
+}`;
+    if (headerContent.includes(target)) {
+      headerContent = headerContent.replace(target, replacement);
+      modified = true;
+    }
+  }
+
+  if (modified) {
+    fs.writeFileSync(hostObjectCallbacksHeader, headerContent, 'utf8');
+    console.log('[patch-expo-modules-jsi] Patched HostObjectCallbacks.h.');
+  } else {
+    console.log('[patch-expo-modules-jsi] HostObjectCallbacks.h already patched.');
   }
 }
 
