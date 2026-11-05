@@ -1,1 +1,2 @@
-Dashboard: https://expo.dev/accounts/ndhung23/projects/ToolKit/builds/d16851ac-9945-4a01-b04f-ac321cd1f2e1
+Build Details: https://expo.dev/accounts/ndhung23/projects/ToolKit/builds/d16851ac-9945-4a01-b04f-ac321cd1f2e1
+Direct APK Download: https://expo.dev/artifacts/eas/YU3tTcs-tfG86eZ606nr0YqBdDsmXYszGVThC5usTtQ.apk

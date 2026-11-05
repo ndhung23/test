@@ -57,7 +57,7 @@ if (fs.existsSync(jsObjFile)) {
 
 // 2. Patch JavaScriptRuntime.swift
 // - Fix bare regex literal `/^[a-zA-Z_$][a-zA-Z0-9_$]*$/` -> `#/^[a-zA-Z_$][a-zA-Z0-9_$]*$/#`
-// - Make `propNameIdsRegistry` and `cache` nonisolated(unsafe) so `deinit` can clean them up
+// - Make `propNameIdsRegistry` and `cache` nonisolated(unsafe) (with @exclusivity(unchecked) BEFORE nonisolated(unsafe))
 const jsRuntimeFile = path.join(
   rootDir,
   'node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptRuntime.swift'
@@ -83,17 +83,24 @@ if (fs.existsSync(jsRuntimeFile)) {
     modified = true;
   }
 
+  // Handle both original and previously mis-ordered attribute/modifier
   if (content.includes('@JavaScriptActor\n  @exclusivity(unchecked)\n  internal var cache = Cache()')) {
     content = content.replace(
       '@JavaScriptActor\n  @exclusivity(unchecked)\n  internal var cache = Cache()',
-      'nonisolated(unsafe)\n  @exclusivity(unchecked)\n  internal var cache = Cache()'
+      '@exclusivity(unchecked)\n  nonisolated(unsafe)\n  internal var cache = Cache()'
+    );
+    modified = true;
+  } else if (content.includes('nonisolated(unsafe)\n  @exclusivity(unchecked)\n  internal var cache = Cache()')) {
+    content = content.replace(
+      'nonisolated(unsafe)\n  @exclusivity(unchecked)\n  internal var cache = Cache()',
+      '@exclusivity(unchecked)\n  nonisolated(unsafe)\n  internal var cache = Cache()'
     );
     modified = true;
   }
 
   if (modified) {
     fs.writeFileSync(jsRuntimeFile, content, 'utf8');
-    console.log('[patch-expo-modules-jsi] Patched JavaScriptRuntime.swift (regex literal & deinit properties).');
+    console.log('[patch-expo-modules-jsi] Patched JavaScriptRuntime.swift.');
   } else {
     console.log('[patch-expo-modules-jsi] JavaScriptRuntime.swift already patched.');
   }
@@ -101,7 +108,6 @@ if (fs.existsSync(jsRuntimeFile)) {
 
 // 3. Patch JavaScriptPromise.swift
 // Add `nonisolated init() {}` to `@JavaScriptActor private final class LongLivedState`
-// so `private let longLivedState = LongLivedState()` can be called from nonisolated context.
 const jsPromiseFile = path.join(
   rootDir,
   'node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptPromise.swift'
@@ -115,14 +121,13 @@ if (fs.existsSync(jsPromiseFile)) {
   if (content.includes(target) && !content.includes('nonisolated init() {}')) {
     content = content.replace(target, replacement);
     fs.writeFileSync(jsPromiseFile, content, 'utf8');
-    console.log('[patch-expo-modules-jsi] Patched JavaScriptPromise.swift (LongLivedState nonisolated init).');
+    console.log('[patch-expo-modules-jsi] Patched JavaScriptPromise.swift.');
   } else {
     console.log('[patch-expo-modules-jsi] JavaScriptPromise.swift already patched.');
   }
 }
 
 // 4. Patch JavaScriptCallback.swift
-// Ensure LongLivedState has `nonisolated init() {}` and local `func call` has no `@Sendable` warning under Swift 5 mode
 const jsCallbackFile = path.join(
   rootDir,
   'node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptCallback.swift'
@@ -173,7 +178,6 @@ for (const relPath of packageFilesToPatch) {
     }
 
     if (relPath.includes('expo-modules-jsi')) {
-      // Disable Swift 6.2 upcoming features
       if (pkgContent.includes('.enableUpcomingFeature("NonisolatedNonsendingByDefault")') && !pkgContent.includes('// .enableUpcomingFeature("NonisolatedNonsendingByDefault")')) {
         pkgContent = pkgContent.replace('.enableUpcomingFeature("NonisolatedNonsendingByDefault"),', '// .enableUpcomingFeature("NonisolatedNonsendingByDefault"),');
         modified = true;
@@ -182,7 +186,6 @@ for (const relPath of packageFilesToPatch) {
         pkgContent = pkgContent.replace('.enableUpcomingFeature("InferIsolatedConformances"),', '// .enableUpcomingFeature("InferIsolatedConformances"),');
         modified = true;
       }
-      // Enable BareSlashRegexLiterals and IsolatedDefaultValues for Swift 5 mode
       if (!pkgContent.includes('.enableUpcomingFeature("BareSlashRegexLiterals")')) {
         pkgContent = pkgContent.replace(
           '.interoperabilityMode(.Cxx),',
@@ -190,7 +193,6 @@ for (const relPath of packageFilesToPatch) {
         );
         modified = true;
       }
-      // Remove -Werror flags that fail on minor warnings
       if (pkgContent.includes('"-Werror", "ImplicitStrongCapture",') && !pkgContent.includes('// "-Werror", "ImplicitStrongCapture",')) {
         pkgContent = pkgContent.replace('"-Werror", "ImplicitStrongCapture",', '// "-Werror", "ImplicitStrongCapture",');
         modified = true;
@@ -199,7 +201,6 @@ for (const relPath of packageFilesToPatch) {
         pkgContent = pkgContent.replace('"-Werror", "NoUsage",', '// "-Werror", "NoUsage",');
         modified = true;
       }
-      // Add -strict-concurrency=minimal to unsafeFlags
       if (!pkgContent.includes('"-strict-concurrency=minimal"')) {
         pkgContent = pkgContent.replace(
           '.unsafeFlags([',
@@ -207,7 +208,6 @@ for (const relPath of packageFilesToPatch) {
         );
         modified = true;
       }
-      // Set swiftLanguageModes to [.v5] for compatibility with Xcode 16 Swift 6 compiler
       if (pkgContent.includes('swiftLanguageModes: [.v6]')) {
         pkgContent = pkgContent.replace('swiftLanguageModes: [.v6]', 'swiftLanguageModes: [.v5]');
         modified = true;
