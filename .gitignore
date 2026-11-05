@@ -63,3 +63,5 @@ cloudflared.exe
 
 *.ipa
 FileBuild/*.ipa
+*.rar
+*.zip

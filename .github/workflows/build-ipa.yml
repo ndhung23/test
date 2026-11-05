@@ -15,15 +15,18 @@ jobs:
       - name: 1. Checkout repository
         uses: actions/checkout@v4
 
-      - name: 2. Select Latest Xcode
+      - name: 2. Select Latest Xcode (Xcode 26.3 for Swift 6.3)
         run: |
-          for app in /Applications/Xcode.app /Applications/Xcode_16.4*.app /Applications/Xcode_16*.app; do
+          echo "=== All Available Xcode Versions in /Applications ==="
+          ls -ld /Applications/Xcode*.app || true
+          for app in /Applications/Xcode_26.3*.app /Applications/Xcode_26.2*.app /Applications/Xcode_26*.app /Applications/Xcode_16.4*.app /Applications/Xcode_16*.app /Applications/Xcode.app; do
             if [ -d "$app" ]; then
               echo "Selecting Xcode from $app"
               sudo xcode-select -s "$app/Contents/Developer"
               break
             fi
           done
+          echo "=== Active Xcode & Swift Toolchain ==="
           xcodebuild -version
           swift --version
 
@@ -76,10 +79,15 @@ jobs:
 
       - name: 10. Package ToolKit-arm64.ipa (ZIP Container)
         run: |
+          rm -rf Payload ToolKit-arm64.ipa
           mkdir -p Payload
           APP_DIR="build/ToolKit.xcarchive/Products/Applications/ToolKit.app"
           if [ ! -d "$APP_DIR" ]; then
             APP_DIR=$(find build -name "*.app" -type d | head -n 1)
+          fi
+          if [ -z "$APP_DIR" ] || [ ! -d "$APP_DIR" ]; then
+            echo "::error::Application bundle (.app) not found in build directory!"
+            exit 1
           fi
           echo "Packaging from: $APP_DIR"
           cp -r "$APP_DIR" Payload/
