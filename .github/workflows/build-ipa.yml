@@ -71,7 +71,8 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            PROVISIONING_PROFILE_SPECIFIER=""
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            SWIFT_STRICT_CONCURRENCY=minimal
 
       - name: 10. Package ToolKit-arm64.ipa (ZIP Container)
         run: |

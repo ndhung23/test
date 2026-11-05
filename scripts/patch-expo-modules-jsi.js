@@ -1,25 +1,18 @@
 // scripts/patch-expo-modules-jsi.js
-// Fixes Swift compilation errors for ExpoModulesJSI under Xcode 16.x / Swift 6.1
+// Comprehensive Swift 6.1 / Xcode 16.4 compatibility patch for Expo SDK 58 (expo-modules-jsi & expo)
 const fs = require('fs');
 const path = require('path');
 
 const rootDir = path.join(__dirname, '..');
 
-// 1. Patch JavaScriptObject.swift
+// 1. Patch JavaScriptObject.swift (UncheckedSendable for slot pointer)
 const jsObjFile = path.join(
   rootDir,
-  'node_modules',
-  'expo-modules-jsi',
-  'apple',
-  'Sources',
-  'ExpoModulesJSI',
-  'Runtime',
-  'Values',
-  'JavaScriptObject.swift'
+  'node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptObject.swift'
 );
 
 if (fs.existsSync(jsObjFile)) {
-  const content = fs.readFileSync(jsObjFile, 'utf8');
+  let content = fs.readFileSync(jsObjFile, 'utf8').replace(/\r\n/g, '\n');
   const oldCode = `  try withUnsafeTemporaryAllocation(of: facebook.jsi.Value.self, capacity: 1) { buffer in
     // The isolated closure below runs synchronously on this thread.
     nonisolated(unsafe) let slot = buffer.baseAddress!
@@ -54,44 +47,112 @@ if (fs.existsSync(jsObjFile)) {
     body(slot.value.pointee)
   }`;
 
-  const normalizedContent = content.replace(/\r\n/g, '\n');
-  const normalizedOld = oldCode.replace(/\r\n/g, '\n');
-  const normalizedNew = newCode.replace(/\r\n/g, '\n');
-
-  if (normalizedContent.includes(normalizedOld)) {
-    const patched = normalizedContent.replace(normalizedOld, normalizedNew);
-    fs.writeFileSync(jsObjFile, patched, 'utf8');
-    console.log('[patch-expo-modules-jsi] Patched JavaScriptObject.swift with UncheckedSendable.');
-  } else if (normalizedContent.includes(normalizedNew)) {
+  if (content.includes(oldCode)) {
+    fs.writeFileSync(jsObjFile, content.replace(oldCode, newCode), 'utf8');
+    console.log('[patch-expo-modules-jsi] Patched JavaScriptObject.swift.');
+  } else {
     console.log('[patch-expo-modules-jsi] JavaScriptObject.swift already patched.');
   }
 }
 
-// 2. Patch JavaScriptCallback.swift to mark local closure functions as @Sendable
+// 2. Patch JavaScriptRuntime.swift
+// - Fix bare regex literal `/^[a-zA-Z_$][a-zA-Z0-9_$]*$/` -> `#/^[a-zA-Z_$][a-zA-Z0-9_$]*$/#`
+// - Make `propNameIdsRegistry` and `cache` nonisolated(unsafe) so `deinit` can clean them up
+const jsRuntimeFile = path.join(
+  rootDir,
+  'node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptRuntime.swift'
+);
+
+if (fs.existsSync(jsRuntimeFile)) {
+  let content = fs.readFileSync(jsRuntimeFile, 'utf8').replace(/\r\n/g, '\n');
+  let modified = false;
+
+  if (content.includes('if name.wholeMatch(of: /^[a-zA-Z_$][a-zA-Z0-9_$]*$/) == nil')) {
+    content = content.replace(
+      'if name.wholeMatch(of: /^[a-zA-Z_$][a-zA-Z0-9_$]*$/) == nil',
+      'if name.wholeMatch(of: #/^[a-zA-Z_$][a-zA-Z0-9_$]*$/#) == nil'
+    );
+    modified = true;
+  }
+
+  if (content.includes('@JavaScriptActor\n  internal var propNameIdsRegistry:')) {
+    content = content.replace(
+      '@JavaScriptActor\n  internal var propNameIdsRegistry:',
+      'nonisolated(unsafe)\n  internal var propNameIdsRegistry:'
+    );
+    modified = true;
+  }
+
+  if (content.includes('@JavaScriptActor\n  @exclusivity(unchecked)\n  internal var cache = Cache()')) {
+    content = content.replace(
+      '@JavaScriptActor\n  @exclusivity(unchecked)\n  internal var cache = Cache()',
+      'nonisolated(unsafe)\n  @exclusivity(unchecked)\n  internal var cache = Cache()'
+    );
+    modified = true;
+  }
+
+  if (modified) {
+    fs.writeFileSync(jsRuntimeFile, content, 'utf8');
+    console.log('[patch-expo-modules-jsi] Patched JavaScriptRuntime.swift (regex literal & deinit properties).');
+  } else {
+    console.log('[patch-expo-modules-jsi] JavaScriptRuntime.swift already patched.');
+  }
+}
+
+// 3. Patch JavaScriptPromise.swift
+// Add `nonisolated init() {}` to `@JavaScriptActor private final class LongLivedState`
+// so `private let longLivedState = LongLivedState()` can be called from nonisolated context.
+const jsPromiseFile = path.join(
+  rootDir,
+  'node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptPromise.swift'
+);
+
+if (fs.existsSync(jsPromiseFile)) {
+  let content = fs.readFileSync(jsPromiseFile, 'utf8').replace(/\r\n/g, '\n');
+  const target = '  @JavaScriptActor\n  private final class LongLivedState: LongLivedObject {';
+  const replacement = '  @JavaScriptActor\n  private final class LongLivedState: LongLivedObject {\n    nonisolated init() {}';
+
+  if (content.includes(target) && !content.includes('nonisolated init() {}')) {
+    content = content.replace(target, replacement);
+    fs.writeFileSync(jsPromiseFile, content, 'utf8');
+    console.log('[patch-expo-modules-jsi] Patched JavaScriptPromise.swift (LongLivedState nonisolated init).');
+  } else {
+    console.log('[patch-expo-modules-jsi] JavaScriptPromise.swift already patched.');
+  }
+}
+
+// 4. Patch JavaScriptCallback.swift
+// Ensure LongLivedState has `nonisolated init() {}` and local `func call` has no `@Sendable` warning under Swift 5 mode
 const jsCallbackFile = path.join(
   rootDir,
-  'node_modules',
-  'expo-modules-jsi',
-  'apple',
-  'Sources',
-  'ExpoModulesJSI',
-  'Runtime',
-  'JavaScriptCallback.swift'
+  'node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptCallback.swift'
 );
 
 if (fs.existsSync(jsCallbackFile)) {
-  let content = fs.readFileSync(jsCallbackFile, 'utf8');
-  const original = content;
-  content = content.replace(/@JavaScriptActor(\r?\n\s+)func call\(/g, '@JavaScriptActor @Sendable$1func call(');
-  if (content !== original) {
+  let content = fs.readFileSync(jsCallbackFile, 'utf8').replace(/\r\n/g, '\n');
+  let modified = false;
+
+  if (content.includes('@JavaScriptActor @Sendable\n    func call(')) {
+    content = content.replace(/@JavaScriptActor @Sendable\n    func call\(/g, '@JavaScriptActor\n    func call(');
+    modified = true;
+  }
+
+  const target = '  @JavaScriptActor\n  private final class LongLivedState: LongLivedObject {';
+  const replacement = '  @JavaScriptActor\n  private final class LongLivedState: LongLivedObject {\n    nonisolated init() {}';
+  if (content.includes(target) && !content.includes('nonisolated init() {}')) {
+    content = content.replace(target, replacement);
+    modified = true;
+  }
+
+  if (modified) {
     fs.writeFileSync(jsCallbackFile, content, 'utf8');
-    console.log('[patch-expo-modules-jsi] Patched JavaScriptCallback.swift local functions with @Sendable.');
+    console.log('[patch-expo-modules-jsi] Patched JavaScriptCallback.swift.');
   } else {
     console.log('[patch-expo-modules-jsi] JavaScriptCallback.swift already patched.');
   }
 }
 
-// 3. Patch Package.swift files
+// 5. Patch Package.swift files
 const packageFilesToPatch = [
   'node_modules/expo-modules-jsi/apple/Package.swift',
   'node_modules/expo/Package.swift',
@@ -103,7 +164,7 @@ const packageFilesToPatch = [
 for (const relPath of packageFilesToPatch) {
   const pkgFile = path.join(rootDir, relPath);
   if (fs.existsSync(pkgFile)) {
-    let pkgContent = fs.readFileSync(pkgFile, 'utf8');
+    let pkgContent = fs.readFileSync(pkgFile, 'utf8').replace(/\r\n/g, '\n');
     let modified = false;
 
     if (pkgContent.includes('// swift-tools-version: 6.2')) {
@@ -113,20 +174,28 @@ for (const relPath of packageFilesToPatch) {
 
     if (relPath.includes('expo-modules-jsi')) {
       // Disable Swift 6.2 upcoming features
-      if (pkgContent.includes('.enableUpcomingFeature("NonisolatedNonsendingByDefault")')) {
+      if (pkgContent.includes('.enableUpcomingFeature("NonisolatedNonsendingByDefault")') && !pkgContent.includes('// .enableUpcomingFeature("NonisolatedNonsendingByDefault")')) {
         pkgContent = pkgContent.replace('.enableUpcomingFeature("NonisolatedNonsendingByDefault"),', '// .enableUpcomingFeature("NonisolatedNonsendingByDefault"),');
         modified = true;
       }
-      if (pkgContent.includes('.enableUpcomingFeature("InferIsolatedConformances")')) {
+      if (pkgContent.includes('.enableUpcomingFeature("InferIsolatedConformances")') && !pkgContent.includes('// .enableUpcomingFeature("InferIsolatedConformances")')) {
         pkgContent = pkgContent.replace('.enableUpcomingFeature("InferIsolatedConformances"),', '// .enableUpcomingFeature("InferIsolatedConformances"),');
         modified = true;
       }
+      // Enable BareSlashRegexLiterals and IsolatedDefaultValues for Swift 5 mode
+      if (!pkgContent.includes('.enableUpcomingFeature("BareSlashRegexLiterals")')) {
+        pkgContent = pkgContent.replace(
+          '.interoperabilityMode(.Cxx),',
+          '.interoperabilityMode(.Cxx),\n        .enableUpcomingFeature("BareSlashRegexLiterals"),\n        .enableUpcomingFeature("IsolatedDefaultValues"),'
+        );
+        modified = true;
+      }
       // Remove -Werror flags that fail on minor warnings
-      if (pkgContent.includes('"-Werror", "ImplicitStrongCapture",')) {
+      if (pkgContent.includes('"-Werror", "ImplicitStrongCapture",') && !pkgContent.includes('// "-Werror", "ImplicitStrongCapture",')) {
         pkgContent = pkgContent.replace('"-Werror", "ImplicitStrongCapture",', '// "-Werror", "ImplicitStrongCapture",');
         modified = true;
       }
-      if (pkgContent.includes('"-Werror", "NoUsage",')) {
+      if (pkgContent.includes('"-Werror", "NoUsage",') && !pkgContent.includes('// "-Werror", "NoUsage",')) {
         pkgContent = pkgContent.replace('"-Werror", "NoUsage",', '// "-Werror", "NoUsage",');
         modified = true;
       }
@@ -151,5 +220,16 @@ for (const relPath of packageFilesToPatch) {
     } else {
       console.log(`[patch-expo-modules-jsi] ${relPath} already compatible.`);
     }
+  }
+}
+
+// 6. Patch node_modules/expo/Expo.podspec to use Swift 5.9 mode like other Expo pods
+const expoPodspec = path.join(rootDir, 'node_modules/expo/Expo.podspec');
+if (fs.existsSync(expoPodspec)) {
+  let podContent = fs.readFileSync(expoPodspec, 'utf8').replace(/\r\n/g, '\n');
+  if (podContent.includes("s.swift_version  = '6.0'")) {
+    podContent = podContent.replace("s.swift_version  = '6.0'", "s.swift_version  = '5.9'");
+    fs.writeFileSync(expoPodspec, podContent, 'utf8');
+    console.log('[patch-expo-modules-jsi] Patched node_modules/expo/Expo.podspec swift_version to 5.9.');
   }
 }
